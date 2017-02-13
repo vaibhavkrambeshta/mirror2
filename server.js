@@ -25,37 +25,10 @@ http.createServer(
 app.get('/', function(req, res){
     res.sendFile(path.join(__dirname + "/index.html"));
 });
-var imagearray = [];
-
 fs = require('fs')
-// fs.readFile('images/ab.jpg', 'utf8', function (err,data) {
-//     if (err) {
-//         return console.log(err);
-//     }
-//
-//     imagearray.push(data);
-// });
-// fs.readFile('images/test1.jpg', 'utf8', function (err,image) {
-//     if (err) {
-//         return console.log(err);
-//     }
-//
-//     imagearray.push(image);
-// });
-
-// cv.readImage("images/test1.jpg", function(err, im){
-//     im.detectObject(cv.FACE_CASCADE, {}, function(err, faces){
-//         for (var i=0;i<faces.length; i++){
-//             var x = faces[i]
-//             im.ellipse(x.x + x.width/2, x.y + x.height/2, x.width/2, x.height/2);
-//         }
-//         im.save('./out.jpg');
-//     });
-// })
-//app.use(express.static(__dirname + '/images'))
 var FaceRecognizer = new cv.FaceRecognizer();
 var uploadDir = joinPath(__dirname, "/images");
-var fileDir = joinPath(__dirname, "/uploads");
+var fileDir = joinPath(__dirname, "/uploads/bruce1.jpg");
 var cvImages = [];
 
 
@@ -65,6 +38,7 @@ fs.readdir(uploadDir, function(err, files){
 
     }
     if(files.length > 0){ //There are some user related image folders
+        var counter = 0;
         files.forEach(function(subfolder, index, array){
             if(subfolder != ".DS_Store" ){ //Issue with Mac, test on Linux-VM
                 //We are now iterating over each subfolder
@@ -77,8 +51,8 @@ fs.readdir(uploadDir, function(err, files){
                         cv.readImage(imageDir, function(err, im){
                             var channels = im.channels();
                             if(channels >=3){
-
-                                var labelNumber = parseInt(Math.floor((Math.random()* 10)+1)); //Create labelnumber; Account-Id starts by 1, labels for openCV start with 0
+                                counter += 1;
+                                var labelNumber = parseInt(counter); //Create labelnumber; Account-Id starts by 1, labels for openCV start with 0
                                 cvImages.push(new Array(labelNumber,im));  //Add image to Array
                             }
                         });
@@ -89,11 +63,26 @@ fs.readdir(uploadDir, function(err, files){
         if(cvImages.length > 3){
             console.log("Training images (we have at least 3 images)", cvImages);
             FaceRecognizer.trainSync(cvImages);
-            cv.readImage(fileDir, function(err, im){
+            cv.readImage('bruce1.jpg', function(err, im){
 
-                if(err) res.send(err);
-                var whoisit = FaceRecognizer.predictSync(im);
-                console.log("Identified image", whoisit);
+                if(err) {
+                    res.send(err);
+                }
+                var width = im.width();
+                var height = im.height();
+
+                if (width < 1 || height < 1) {
+                    throw new Error('Image has no size');
+                }else{
+                    var whoisit = FaceRecognizer.predictSync(im);
+                    if(whoisit.id >=0){
+                        console.log("Identified image", whoisit);
+                    }else{
+                        console.log('Image didnot match.');
+                    }
+                    // im.save('firstoutput.jpg');
+                    // console.log(im);
+                }
             })
         }else{
             console.log("Not enough images uploaded yet", cvImages);
